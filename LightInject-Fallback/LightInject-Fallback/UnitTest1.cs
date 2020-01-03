@@ -1,8 +1,10 @@
 using DragonSpark;
 using DragonSpark.Compose;
+using DragonSpark.Model.Selection;
 using DragonSpark.Runtime.Activation;
 using FluentAssertions;
 using LightInject;
+using System;
 using Xunit;
 
 namespace LightInject_Fallback
@@ -32,13 +34,22 @@ namespace LightInject_Fallback
 		{
 
 			var container = new ServiceContainer();
+			container.Register(new Selector<IFrom>(typeof(Singleton)).Get);
 			container.RegisterFallback(CanActivate.Default.Get, Start.A.Selection<ServiceRequest>()
 			                                                         .By.Calling(x => x.ServiceType)
 			                                                         .Then()
 			                                                         .Activate());
-			container.Register(typeof(IFrom), typeof(Singleton));
 
 			container.GetInstance<IFrom>().Should().BeSameAs(Singleton.Default);
+		}
+
+		sealed class Selector<T> : ISelect<IServiceFactory, T>
+		{
+			readonly Type _type;
+
+			public Selector(Type type) => _type = type;
+
+			public T Get(IServiceFactory parameter) => parameter.GetInstance(_type).To<T>();
 		}
 
 		public interface IFrom {}
